@@ -1,0 +1,17 @@
+# Blueprint opcional do Render. Você também pode configurar tudo pela tela do site.
+services:
+  - type: web
+    name: bolao-copa-2026
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: DEADLINE
+        value: 2026-06-11T12:00
