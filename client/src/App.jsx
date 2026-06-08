@@ -435,7 +435,7 @@ function EspeciaisTab({ pred, savePred, isLocked }) {
 function RankingTab({ everyone, results, meId, onRefresh }) {
   const rows = useMemo(() => everyone.map((e) => {
     const data = e.data || emptyData();
-    const { pts } = scoreUser(data, results);
+    let pts = 0; try { pts = scoreUser(data, results).pts; } catch { pts = 0; }
     const gf = GROUP_MATCHES.filter((m) => { const p = (data.groups || {})[m.id]; return p && p.a !== "" && p.b !== "" && p.a != null && p.b != null; }).length;
     const sf = ["campeao", "vice", "terceiro", "artilheiro", "melhorJogador"].filter((k) => (data.special || {})[k] && String(data.special[k]).trim() !== "").length;
     return { id: e.id, name: e.name, isAdmin: e.isAdmin, pts, gf, sf };

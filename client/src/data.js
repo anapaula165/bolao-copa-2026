@@ -188,7 +188,7 @@ function computeStandings(pred) {
   GROUP_LETTERS.forEach((g)=>{
     const tbl = {}; GROUPS[g].forEach((c)=> tbl[c]={c,pts:0,gf:0,ga:0});
     GROUP_MATCHES.filter(m=>m.group===g).forEach((m)=>{
-      const p = pred.groups[m.id]; if(!p||p.a===""||p.b===""||p.a==null||p.b==null) return;
+      const p = (pred.groups||{})[m.id]; if(!p||p.a===""||p.b===""||p.a==null||p.b==null) return;
       const a=+p.a, b=+p.b; tbl[m.home].gf+=a; tbl[m.home].ga+=b; tbl[m.away].gf+=b; tbl[m.away].ga+=a;
       if(a>b) tbl[m.home].pts+=3; else if(b>a) tbl[m.away].pts+=3; else { tbl[m.home].pts++; tbl[m.away].pts++; }
     });
@@ -200,8 +200,8 @@ function computeStandings(pred) {
 function resolveBracketTeams(pred) {
   // resolve as duas seleções de cada confronto a partir de slots(R32) e vencedores(propaga)
   const teams = {}; // Mxx -> [code|null, code|null]
-  const w = pred.bracket.winners || {};
-  const slots = pred.bracket.slots || {};
+  const w = (pred.bracket||{}).winners || {};
+  const slots = (pred.bracket||{}).slots || {};
   KO_IDS.forEach((id)=>{
     const m = BRACKET[id];
     if (m.round==="R32") {
@@ -221,9 +221,19 @@ function resolveBracketTeams(pred) {
 
 function scoreUser(pred, results) {
   let pts = 0, det = { grupos:0, mata:0, especiais:0 };
+  pred = pred || {}; results = results || {};
+  const pg  = pred.groups || {};
+  const brk = pred.bracket || {};
+  const pw  = brk.winners || {};
+  const psS = brk.scores || {};
+  const psp = pred.special || {};
+  const rg  = results.groups || {};
+  const rkw = results.koWinners || {};
+  const rks = results.koScores || {};
+  const rsp = results.special || {};
   // grupos
   GROUP_MATCHES.forEach((m)=>{
-    const p = pred.groups[m.id], r = results.groups[m.id];
+    const p = pg[m.id], r = rg[m.id];
     if(!p||!r||p.a===""||p.b===""||r.a===""||r.b===""||p.a==null||r.a==null) return;
     const pa=+p.a,pb=+p.b,ra=+r.a,rb=+r.b;
     if(pa===ra&&pb===rb){ pts+=POINTS.placarExato; det.grupos+=POINTS.placarExato; }
@@ -231,20 +241,19 @@ function scoreUser(pred, results) {
   });
   // mata-mata: vencedor + placar opcional
   KO_IDS.forEach((id)=>{
-    const rw = results.koWinners[id]; const pw = pred.bracket.winners[id];
-    if(rw && pw && rw===pw){ pts+=POINTS.mataMataAvanca; det.mata+=POINTS.mataMataAvanca; }
-    const rs = results.koScores[id], ps = pred.bracket.scores[id];
-    if(rs && ps && rs.a!==""&&rs.b!==""&&ps.a!==""&&ps.b!==""&&rs.a!=null&&ps.a!=null
-       && +rs.a===+ps.a && +rs.b===+ps.b){ pts+=POINTS.mataMataPlacar; det.mata+=POINTS.mataMataPlacar; }
+    const rw = rkw[id], w = pw[id];
+    if(rw && w && rw===w){ pts+=POINTS.mataMataAvanca; det.mata+=POINTS.mataMataAvanca; }
+    const rs = rks[id], psc = psS[id];
+    if(rs && psc && rs.a!==""&&rs.b!==""&&psc.a!==""&&psc.b!==""&&rs.a!=null&&psc.a!=null
+       && +rs.a===+psc.a && +rs.b===+psc.b){ pts+=POINTS.mataMataPlacar; det.mata+=POINTS.mataMataPlacar; }
   });
   // especiais
-  const sp = results.special||{};
   const eq = (a,b)=> a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase();
-  if(eq(pred.special.campeao, sp.campeao)){ pts+=POINTS.campeao; det.especiais+=POINTS.campeao; }
-  if(eq(pred.special.vice, sp.vice)){ pts+=POINTS.vice; det.especiais+=POINTS.vice; }
-  if(eq(pred.special.terceiro, sp.terceiro)){ pts+=POINTS.terceiro; det.especiais+=POINTS.terceiro; }
-  if(eq(pred.special.artilheiro, sp.artilheiro)){ pts+=POINTS.artilheiro; det.especiais+=POINTS.artilheiro; }
-  if(eq(pred.special.melhorJogador, sp.melhorJogador)){ pts+=POINTS.melhorJogador; det.especiais+=POINTS.melhorJogador; }
+  if(eq(psp.campeao, rsp.campeao)){ pts+=POINTS.campeao; det.especiais+=POINTS.campeao; }
+  if(eq(psp.vice, rsp.vice)){ pts+=POINTS.vice; det.especiais+=POINTS.vice; }
+  if(eq(psp.terceiro, rsp.terceiro)){ pts+=POINTS.terceiro; det.especiais+=POINTS.terceiro; }
+  if(eq(psp.artilheiro, rsp.artilheiro)){ pts+=POINTS.artilheiro; det.especiais+=POINTS.artilheiro; }
+  if(eq(psp.melhorJogador, rsp.melhorJogador)){ pts+=POINTS.melhorJogador; det.especiais+=POINTS.melhorJogador; }
   return { pts, det };
 }
 
