@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🏆 Bolão da Copa do Mundo 2026 — Serviços Internacionais IBBA
 
 Site de bolão com **login real por e-mail e senha**, palpites da fase de grupos,
@@ -142,3 +143,7 @@ Se quiser adicionar confirmação por e-mail no futuro, dá para integrar um pro
 ---
 
 Feito para o bolão da equipe. Bom torneio! 🇧🇷⚽
+=======
+# bolao-copa-2026
+Site de bolão com **login real por e-mail e senha**, palpites da fase de grupos, chaveamento interativo do mata-mata (IDs oficiais da FIFA), palpites especiais, ranking que atualiza sozinho e painel de administrador.
+>>>>>>> a8598864b942828e929c97e12857ae78fcfecb31
