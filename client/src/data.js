@@ -197,11 +197,11 @@ function computeStandings(pred) {
   return st;
 }
 
-function resolveBracketTeams(pred) {
+function resolveBracketTeams(pred, officialSlots) {
   // resolve as duas seleções de cada confronto a partir de slots(R32) e vencedores(propaga)
   const teams = {}; // Mxx -> [code|null, code|null]
   const w = (pred.bracket||{}).winners || {};
-  const slots = (pred.bracket||{}).slots || {};
+  const slots = officialSlots || (pred.bracket||{}).slots || {};
   KO_IDS.forEach((id)=>{
     const m = BRACKET[id];
     if (m.round==="R32") {
@@ -261,6 +261,21 @@ const MAX_POINTS = GROUP_MATCHES.length*POINTS.placarExato
   + KO_IDS.length*(POINTS.mataMataAvanca+POINTS.mataMataPlacar)
   + POINTS.campeao+POINTS.vice+POINTS.terceiro+POINTS.artilheiro+POINTS.melhorJogador;
 
+
+/* ---------- HORÁRIOS DOS JOGOS E TRAVA INDIVIDUAL ---------- */
+const MONTHS = { jan:0, fev:1, mar:2, abr:3, mai:4, jun:5, jul:6, ago:7, set:8, out:9, nov:10, dez:11 };
+const MATCH_LOCK_MIN = 30; // trava 30 min antes do apito
+function matchKickoff(m) {
+  const [d, mon] = m.date.split("/");
+  const [hStr, mStr] = m.time.split("h");
+  const hh = parseInt(hStr, 10) || 0;
+  const mm = mStr ? parseInt(mStr, 10) : 0;
+  // Brasília = UTC-3, então somamos 3 para obter o horário UTC
+  return Date.UTC(2026, MONTHS[mon], parseInt(d, 10), hh + 3, mm);
+}
+function matchLockMs(m) { return matchKickoff(m) - MATCH_LOCK_MIN * 60000; }
+const GROUP_MATCHES_SORTED = [...GROUP_MATCHES].sort((a, b) => matchKickoff(a) - matchKickoff(b));
+
 export const emptyData = () => ({ groups:{}, bracket:{ slots:{}, winners:{}, scores:{} }, special:{} });
 
-export { T, ALL_CODES, GROUPS, GROUP_LETTERS, GM, GROUP_MATCHES, BRACKET, KO_IDS, ROUND_LABEL, POINTS, MAX_POINTS, computeStandings, resolveBracketTeams, scoreUser };
+export { T, ALL_CODES, GROUPS, GROUP_LETTERS, GM, GROUP_MATCHES, BRACKET, KO_IDS, ROUND_LABEL, POINTS, MAX_POINTS, computeStandings, resolveBracketTeams, scoreUser, matchKickoff, matchLockMs, MATCH_LOCK_MIN, GROUP_MATCHES_SORTED };

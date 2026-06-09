@@ -22,8 +22,12 @@ export async function initDb() {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      reset_token TEXT,
+      reset_expires TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMPTZ;
     CREATE TABLE IF NOT EXISTS predictions (
       user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       data JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -42,6 +46,6 @@ export async function initDb() {
     `INSERT INTO app_state (id, config, results)
        VALUES (1, $1::jsonb, '{}'::jsonb)
      ON CONFLICT (id) DO NOTHING`,
-    [JSON.stringify({ deadline: process.env.DEADLINE || "2026-06-11T12:00", globalLock: false })]
+    [JSON.stringify({ deadline: process.env.DEADLINE || "2026-06-11T12:00", globalLock: false, bracketOpen: false, bracketLocked: false, bracketTeams: {} })]
   );
 }

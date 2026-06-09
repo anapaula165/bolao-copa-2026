@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🏆 Bolão da Copa do Mundo 2026 — Serviços Internacionais IBBA
 
 Site de bolão com **login real por e-mail e senha**, palpites da fase de grupos,
@@ -143,7 +142,33 @@ Se quiser adicionar confirmação por e-mail no futuro, dá para integrar um pro
 ---
 
 Feito para o bolão da equipe. Bom torneio! 🇧🇷⚽
-=======
-# bolao-copa-2026
-Site de bolão com **login real por e-mail e senha**, palpites da fase de grupos, chaveamento interativo do mata-mata (IDs oficiais da FIFA), palpites especiais, ranking que atualiza sozinho e painel de administrador.
->>>>>>> a8598864b942828e929c97e12857ae78fcfecb31
+
+---
+
+## Novidades desta versão
+
+### 1. "Esqueci minha senha"
+Na tela de login há o link **"Esqueci minha senha"**. A pessoa informa o e-mail e recebe um link para criar uma nova senha (válido por 1 hora, uso único).
+
+Há **dois caminhos**, e o recurso funciona mesmo sem configurar e-mail:
+
+- **Com e-mail configurado (SMTP):** o link chega automaticamente no e-mail da pessoa. Preencha as variáveis `SMTP_*` e `APP_URL` (veja `.env.example`). Para Gmail, gere uma *senha de app* em https://myaccount.google.com/apppasswords e use-a em `SMTP_PASS`.
+- **Sem e-mail configurado:** o administrador abre **Perfil → painel do admin → Participantes**, clica em **"gerar link"** na pessoa, copia o link e envia (WhatsApp, etc.). O link também aparece no log do servidor.
+
+### 2. Mata-mata bloqueado até a hora certa
+A aba **Palpites → Mata-mata** começa **bloqueada**. Quando a fase de grupos terminar:
+1. Vá em **painel do admin → "Liberar mata-mata"**.
+2. Preencha os **32 classificados** (os países que avançaram) nos campos dos 32-avos e clique em **"Salvar classificados"**.
+3. Marque **"Liberar o mata-mata"**. Agora o pessoal palpita quem avança em cada confronto (e o placar, opcional) **até a final**.
+4. Antes do 1º jogo do mata-mata, marque **"Travar os palpites do mata-mata"** para congelar os palpites.
+
+Os participantes **não escolhem mais** os times dos 32-avos — eles já vêm dos classificados oficiais que você cadastrou. Eles só marcam quem avança.
+
+### 3. Apostas dos grupos em ordem cronológica + trava por jogo
+A fase de grupos agora aparece em **ordem cronológica** (agrupada por dia), e **não trava mais tudo de uma vez**. Cada jogo **fecha sozinho 30 minutos antes do apito**. Assim dá para ir preenchendo aos poucos, acompanhando o desempenho das seleções.
+
+- O antigo prazo único (11/06 12h) agora vale **apenas para os palpites especiais** (campeão, artilheiro, etc.). Você ajusta esse prazo em **painel do admin → "Prazos & trava"**.
+- A **trava geral** (no mesmo lugar) é só para emergência: congela tudo na hora.
+- A trava por jogo é validada também **no servidor** — ninguém consegue alterar um jogo depois que ele fechou.
+
+> Observação importante: a trava usa o relógio do servidor. Hospedando no Render, o horário fica em UTC, mas o código já considera o fuso de Brasília (UTC−3) ao calcular o "30 minutos antes". Não precisa configurar nada.

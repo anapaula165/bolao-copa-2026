@@ -203,3 +203,23 @@ body{background:var(--cream)}
 .bz-login-card .bz-input{text-align:left;margin-bottom:10px}
 .bz-flash.err{background:#b3261e}
 .bz-savedtag{background:var(--green-soft);color:var(--green);font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}
+
+/* ===== Ajustes: lista cronológica, trava por jogo, recuperação de senha, mata-mata bloqueado ===== */
+.bz-dayhead{position:sticky;top:0;z-index:2;margin:18px 0 8px;padding:6px 10px;font-weight:800;font-size:.82rem;letter-spacing:.04em;text-transform:uppercase;color:#0b5;background:linear-gradient(90deg,rgba(0,153,68,.14),transparent);border-left:4px solid #009c3b;border-radius:4px;color:#0a7d34}
+.bz-gtag{display:inline-block;padding:1px 7px;border-radius:20px;background:#eef3ee;color:#356;font-weight:700;font-size:.72rem}
+.bz-lockchip{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;background:#fdeaea;color:#c0392b;font-weight:700;font-size:.74rem}
+.bz-matchmeta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+
+.bz-bracket-closed{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:42px 22px;background:#fff;border:1px dashed #cdd6cd;border-radius:16px;max-width:560px;margin:8px auto}
+.bz-bracket-closed h3{margin:0;color:#1c2b1c}
+.bz-bracket-closed p{margin:0;color:#5a6b5a;line-height:1.5;max-width:460px}
+
+.bz-okmsg{margin:6px 0;padding:10px 12px;background:#eafaf0;border:1px solid #b7e6c8;color:#1f7a44;border-radius:10px;font-size:.86rem;line-height:1.45}
+.bz-warn.small,.bz-fine{font-size:.82rem}
+.bz-link.center{display:block;margin:10px auto 0;text-align:center;background:none;border:none;color:#0a7d34;cursor:pointer;text-decoration:underline}
+
+.bz-userrow.col{flex-direction:column;align-items:stretch;gap:6px}
+.bz-userrow-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.bz-btn.tiny{padding:4px 10px;font-size:.76rem}
+.bz-input.small{padding:7px 9px;font-size:.82rem}
+.bz-subtab.chave{}
