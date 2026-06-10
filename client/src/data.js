@@ -72,8 +72,8 @@ const GM = [
   ["GC6","C","MAR","HAI",3,"24/jun","qua","19h","Atlanta"],
   // GRUPO D
   ["GD1","D","USA","PAR",1,"12/jun","sex","22h","Los Angeles"],
-  ["GD2","D","AUS","TUR",1,"13/jun","sáb","1h","Vancouver"],
-  ["GD3","D","TUR","PAR",2,"19/jun","sex","1h","San Francisco"],
+  ["GD2","D","AUS","TUR",1,"14/jun","dom","1h","Vancouver"],
+  ["GD3","D","TUR","PAR",2,"20/jun","sáb","0h","San Francisco"],
   ["GD4","D","USA","AUS",2,"19/jun","sex","16h","Seattle"],
   ["GD5","D","TUR","USA",3,"25/jun","qui","23h","Los Angeles"],
   ["GD6","D","PAR","AUS",3,"25/jun","qui","23h","San Francisco"],
@@ -220,16 +220,11 @@ function resolveBracketTeams(pred, officialSlots) {
 }
 
 function scoreUser(pred, results) {
-  let pts = 0, det = { grupos:0, mata:0, especiais:0 };
+  let pts = 0, det = { grupos:0, especiais:0 };
   pred = pred || {}; results = results || {};
   const pg  = pred.groups || {};
-  const brk = pred.bracket || {};
-  const pw  = brk.winners || {};
-  const psS = brk.scores || {};
   const psp = pred.special || {};
   const rg  = results.groups || {};
-  const rkw = results.koWinners || {};
-  const rks = results.koScores || {};
   const rsp = results.special || {};
   // grupos
   GROUP_MATCHES.forEach((m)=>{
@@ -239,27 +234,14 @@ function scoreUser(pred, results) {
     if(pa===ra&&pb===rb){ pts+=POINTS.placarExato; det.grupos+=POINTS.placarExato; }
     else if(Math.sign(pa-pb)===Math.sign(ra-rb)){ pts+=POINTS.resultadoCerto; det.grupos+=POINTS.resultadoCerto; }
   });
-  // mata-mata: vencedor + placar opcional
-  KO_IDS.forEach((id)=>{
-    const rw = rkw[id], w = pw[id];
-    if(rw && w && rw===w){ pts+=POINTS.mataMataAvanca; det.mata+=POINTS.mataMataAvanca; }
-    const rs = rks[id], psc = psS[id];
-    if(rs && psc && rs.a!==""&&rs.b!==""&&psc.a!==""&&psc.b!==""&&rs.a!=null&&psc.a!=null
-       && +rs.a===+psc.a && +rs.b===+psc.b){ pts+=POINTS.mataMataPlacar; det.mata+=POINTS.mataMataPlacar; }
-  });
-  // especiais
+  // especiais (apenas Campeão e Vice)
   const eq = (a,b)=> a&&b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase();
   if(eq(psp.campeao, rsp.campeao)){ pts+=POINTS.campeao; det.especiais+=POINTS.campeao; }
   if(eq(psp.vice, rsp.vice)){ pts+=POINTS.vice; det.especiais+=POINTS.vice; }
-  if(eq(psp.terceiro, rsp.terceiro)){ pts+=POINTS.terceiro; det.especiais+=POINTS.terceiro; }
-  if(eq(psp.artilheiro, rsp.artilheiro)){ pts+=POINTS.artilheiro; det.especiais+=POINTS.artilheiro; }
-  if(eq(psp.melhorJogador, rsp.melhorJogador)){ pts+=POINTS.melhorJogador; det.especiais+=POINTS.melhorJogador; }
   return { pts, det };
 }
 
-const MAX_POINTS = GROUP_MATCHES.length*POINTS.placarExato
-  + KO_IDS.length*(POINTS.mataMataAvanca+POINTS.mataMataPlacar)
-  + POINTS.campeao+POINTS.vice+POINTS.terceiro+POINTS.artilheiro+POINTS.melhorJogador;
+const MAX_POINTS = GROUP_MATCHES.length*POINTS.placarExato + POINTS.campeao + POINTS.vice;
 
 
 /* ---------- HORÁRIOS DOS JOGOS E TRAVA INDIVIDUAL ---------- */

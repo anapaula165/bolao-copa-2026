@@ -27,6 +27,7 @@ export const api = {
   register: (d) => req("POST", "/api/auth/register", d),
   login: (d) => req("POST", "/api/auth/login", d),
   me: () => req("GET", "/api/me"),
+  updateName: (name) => req("PUT", "/api/me", { name }),
   state: () => req("GET", "/api/state"),
   myPred: () => req("GET", "/api/predictions/me"),
   savePred: (data) => req("PUT", "/api/predictions/me", { data }),

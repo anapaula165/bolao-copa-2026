@@ -62,6 +62,15 @@ app.get("/api/me", auth, async (req, res) => {
   res.json({ id: u.id, name: u.name, email: u.email, isAdmin: u.is_admin });
 });
 
+// atualizar o nome (nickname que aparece no ranking)
+app.put("/api/me", auth, async (req, res) => {
+  const name = (req.body?.name || "").trim();
+  if (name.length < 2) return res.status(400).json({ error: "O nome precisa ter ao menos 2 caracteres." });
+  const r = await pool.query("UPDATE users SET name=$1 WHERE id=$2 RETURNING id,name,email,is_admin", [name, req.user.id]);
+  const u = r.rows[0];
+  res.json({ id: u.id, name: u.name, email: u.email, isAdmin: u.is_admin });
+});
+
 /* ---------------- RECUPERAÇÃO DE SENHA ---------------- */
 async function createResetToken(userId) {
   const token = crypto.randomBytes(24).toString("hex");

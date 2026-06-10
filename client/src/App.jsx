@@ -57,8 +57,6 @@ export default function App() {
     return !isNaN(d) && now > d.getTime();
   }, [config.deadline, config.globalLock, now]);
 
-  const koEditable = config.bracketOpen && !config.bracketLocked && !config.globalLock;
-
   const persist = useCallback((nextData) => {
     setPred(nextData);
     setAllPreds((prev) => prev.map((p) => (me && p.id === me.id ? { ...p, data: nextData } : p)));
@@ -76,9 +74,15 @@ export default function App() {
   async function saveConfig(next) { setConfig(next); await api.setConfig(stripConfig(next)); }
   async function saveResults(next) { setResults(next); await api.setResults(next); const all = await api.allPreds(); setAllPreds(all || []); }
   async function refreshRanking() { try { const all = await api.allPreds(); setAllPreds(all || []); const st = await api.state(); if (st?.results) setResults({ groups: {}, koWinners: {}, koScores: {}, special: {}, ...st.results }); } catch {} }
+  async function renameMe(name) {
+    const u = await api.updateName(name);
+    setMe(u);
+    setAllPreds((prev) => prev.map((p) => (p.id === u.id ? { ...p, name: u.name } : p)));
+    return u;
+  }
 
   const groupFilled = useMemo(() => GROUP_MATCHES.filter((m) => { const p = pred.groups[m.id]; return p && p.a !== "" && p.a != null && p.b !== "" && p.b != null; }).length, [pred]);
-  const specialFilled = useMemo(() => ["campeao", "vice", "terceiro", "artilheiro", "melhorJogador"].filter((k) => pred.special[k] && String(pred.special[k]).trim() !== "").length, [pred]);
+  const specialFilled = useMemo(() => ["campeao", "vice"].filter((k) => pred.special[k] && String(pred.special[k]).trim() !== "").length, [pred]);
 
   if (resetToken) return <ResetScreen token={resetToken} onDone={() => { window.history.replaceState({}, "", window.location.pathname); setResetToken(null); }} />;
   if (!booted) return <div className="bz-center">Carregando…</div>;
@@ -110,7 +114,7 @@ export default function App() {
           <button key={k} className={"bz-tab" + (tab === k ? " on" : "")} onClick={() => setTab(k)}>
             {label}
             {k === "palpites" && <span className="bz-pill">{groupFilled}/72</span>}
-            {k === "especiais" && <span className="bz-pill">{specialFilled}/5</span>}
+            {k === "especiais" && <span className="bz-pill">{specialFilled}/2</span>}
           </button>
         ))}
       </nav>
@@ -119,18 +123,18 @@ export default function App() {
 
       <main className="bz-main">
         {tab === "grupos" && <GruposTab />}
-        {tab === "palpites" && <PalpitesTab pred={pred} savePred={persist} now={now} config={config} koEditable={koEditable} />}
+        {tab === "palpites" && <PalpitesTab pred={pred} savePred={persist} now={now} config={config} />}
         {tab === "especiais" && <EspeciaisTab pred={pred} savePred={persist} isLocked={specialsClosed} />}
         {tab === "ranking" && <RankingTab everyone={allPreds} results={results} meId={me.id} onRefresh={refreshRanking} />}
         {tab === "perfil" && (
           <PerfilTab me={me} pred={pred} results={results} groupFilled={groupFilled} specialFilled={specialFilled}
-            adminMode={adminMode} setAdminMode={setAdminMode}
+            adminMode={adminMode} setAdminMode={setAdminMode} onRename={renameMe}
             config={config} saveConfig={saveConfig} saveResults={saveResults} everyone={allPreds} />
         )}
       </main>
 
       <footer className="bz-footer">
-        Pontuação: placar exato {POINTS.placarExato} · resultado certo {POINTS.resultadoCerto} · mata-mata {POINTS.mataMataAvanca} (+{POINTS.mataMataPlacar} placar) · Campeão {POINTS.campeao} · Vice {POINTS.vice} · 3º {POINTS.terceiro} · Artilheiro {POINTS.artilheiro} · Craque {POINTS.melhorJogador} · Máximo {MAX_POINTS} pts
+        Pontuação: placar exato {POINTS.placarExato} · resultado certo {POINTS.resultadoCerto} · Campeão {POINTS.campeao} · Vice {POINTS.vice} · Máximo {MAX_POINTS} pts
       </footer>
     </div>
   );
@@ -262,18 +266,11 @@ function GruposTab() {
 }
 
 /* ============================== ABA 2 — PALPITES ============================== */
-function PalpitesTab({ pred, savePred, now, config, koEditable }) {
-  const [view, setView] = useState("grupos");
+function PalpitesTab({ pred, savePred, now, config }) {
   return (
     <div>
-      <SectionTitle k="Aba 2" t="Palpites" s="Jogos em ordem cronológica. Cada um trava 30 min antes de começar." />
-      <div className="bz-subtabs">
-        <button className={"bz-subtab" + (view === "grupos" ? " on" : "")} onClick={() => setView("grupos")}>📅 Fase de grupos</button>
-        <button className={"bz-subtab chave" + (view === "mata" ? " on" : "")} onClick={() => setView("mata")}>⚔ Mata-mata {config.bracketOpen ? "" : "🔒"}</button>
-      </div>
-      {view === "grupos"
-        ? <GroupPredictions pred={pred} savePred={savePred} now={now} globalLock={config.globalLock} />
-        : <BracketSection pred={pred} savePred={savePred} config={config} koEditable={koEditable} />}
+      <SectionTitle k="Aba 2" t="Palpites" s="Jogos da fase de grupos em ordem cronológica. Cada um trava 30 min antes de começar." />
+      <GroupPredictions pred={pred} savePred={savePred} now={now} globalLock={config.globalLock} />
     </div>
   );
 }
@@ -323,102 +320,6 @@ function GroupPredictions({ pred, savePred, now, globalLock }) {
   );
 }
 
-/* ---------- MATA-MATA (usuário) ---------- */
-function BracketSection({ pred, savePred, config, koEditable }) {
-  if (!config.bracketOpen) {
-    return (
-      <div className="bz-bracket-closed">
-        <div className="bz-cup big">🔒</div>
-        <h3>O mata-mata ainda não foi liberado</h3>
-        <p>Esta fase será aberta quando a fase de grupos terminar e soubermos quais seleções se classificaram.
-          Aí o administrador preenche os classificados e você poderá palpitar quem avança em cada confronto, até a final.</p>
-      </div>
-    );
-  }
-  return <BracketPredictions pred={pred} savePred={savePred} config={config} koEditable={koEditable} />;
-}
-
-function BracketPredictions({ pred, savePred, config, koEditable }) {
-  const official = config.bracketTeams || {};
-  const teams = useMemo(() => resolveBracketTeams(pred, official), [pred, official]);
-
-  function setWinner(matchId, code) {
-    if (!koEditable) return;
-    const winners = { ...pred.bracket.winners, [matchId]: code };
-    let changed = true;
-    while (changed) {
-      changed = false;
-      const t = resolveBracketTeams({ ...pred, bracket: { ...pred.bracket, winners } }, official);
-      KO_IDS.forEach((id) => { if (winners[id] && !(t[id] || []).includes(winners[id])) { delete winners[id]; changed = true; } });
-    }
-    savePred({ ...pred, bracket: { ...pred.bracket, winners } });
-  }
-  function setScore(matchId, side, val) {
-    if (!koEditable) return;
-    const v = val === "" ? "" : Math.max(0, Math.min(20, parseInt(val || "0", 10) || 0));
-    const scores = { ...pred.bracket.scores, [matchId]: { ...(pred.bracket.scores[matchId] || { a: "", b: "" }), [side]: v } };
-    savePred({ ...pred, bracket: { ...pred.bracket, scores } });
-  }
-
-  const left = KO_IDS.filter((id) => BRACKET[id].side === "L");
-  const right = KO_IDS.filter((id) => BRACKET[id].side === "R");
-  const byRound = (ids, r) => ids.filter((id) => BRACKET[id].round === r);
-
-  return (
-    <div className="bz-bracket-wrap">
-      {!koEditable && <div className="bz-locked">🔒 Os palpites do mata-mata estão encerrados (somente leitura).</div>}
-      {koEditable && <p className="bz-hint">Marque a bolinha de quem você acha que avança em cada jogo — a próxima fase se preenche sozinha. O placar é opcional (vale bônus).</p>}
-      <div className="bz-bracket">
-        <div className="bz-side">
-          {["R32", "R16", "QF", "SF"].map((r) => (
-            <div className={"bz-col r-" + r} key={"L" + r}>
-              <div className="bz-colhead">{ROUND_LABEL[r]}</div>
-              {byRound(left, r).map((id) => (<KoMatch key={id} id={id} teams={teams[id]} pred={pred} setWinner={setWinner} setScore={setScore} locked={!koEditable} />))}
-            </div>
-          ))}
-        </div>
-        <div className="bz-center-col">
-          <div className="bz-colhead final">{ROUND_LABEL.F}</div>
-          <KoMatch id="M104" teams={teams.M104} pred={pred} big setWinner={setWinner} setScore={setScore} locked={!koEditable} />
-          {pred.bracket.winners.M104 && (<div className="bz-champ">🏆 Seu campeão: <strong><Flag code={pred.bracket.winners.M104} /> {T[pred.bracket.winners.M104]?.n}</strong></div>)}
-          <div className="bz-colhead third">{ROUND_LABEL["3P"]}</div>
-          <KoMatch id="M103" teams={teams.M103} pred={pred} setWinner={setWinner} setScore={setScore} locked={!koEditable} />
-        </div>
-        <div className="bz-side right">
-          {["SF", "QF", "R16", "R32"].map((r) => (
-            <div className={"bz-col r-" + r} key={"R" + r}>
-              <div className="bz-colhead">{ROUND_LABEL[r]}</div>
-              {byRound(right, r).map((id) => (<KoMatch key={id} id={id} teams={teams[id]} pred={pred} setWinner={setWinner} setScore={setScore} locked={!koEditable} />))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function KoMatch({ id, teams, pred, setWinner, setScore, locked, big }) {
-  const m = BRACKET[id];
-  const w = pred.bracket.winners[id];
-  const sc = pred.bracket.scores[id] || { a: "", b: "" };
-  function feederLabel(i) { if (!m.feeders) return "?"; return (m.losers ? "Perdedor " : "Vencedor ") + m.feeders[i]; }
-  return (
-    <div className={"bz-ko" + (big ? " big" : "")}>
-      <div className="bz-ko-id">{id}</div>
-      {[0, 1].map((i) => {
-        const code = teams ? teams[i] : null;
-        return (
-          <div className={"bz-ko-row" + (w && code && w === code ? " win" : "")} key={i}>
-            <button className="bz-pickwin" disabled={locked || !code} title="Marcar como classificado" onClick={() => code && setWinner(id, code)}>{w && code && w === code ? "●" : "○"}</button>
-            <span className="bz-ko-team">{code ? <><Flag code={code} /> <b>{code}</b></> : <i className="bz-ko-tbd">{feederLabel(i)}</i>}</span>
-            <input className="bz-ko-score" inputMode="numeric" disabled={locked || !code} value={i === 0 ? sc.a : sc.b} onChange={(e) => setScore(id, i === 0 ? "a" : "b", e.target.value)} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /* ============================== ABA 3 — ESPECIAIS ============================== */
 function EspeciaisTab({ pred, savePred, isLocked }) {
   function set(k, v) { if (isLocked) return; savePred({ ...pred, special: { ...pred.special, [k]: v } }); }
@@ -438,15 +339,6 @@ function EspeciaisTab({ pred, savePred, isLocked }) {
       <div className="bz-specgrid">
         {teamSelect("campeao", "🥇 Campeão", POINTS.campeao)}
         {teamSelect("vice", "🥈 Vice-Campeão", POINTS.vice)}
-        {teamSelect("terceiro", "🥉 3º Lugar", POINTS.terceiro)}
-        <div className="bz-spec">
-          <div className="bz-spec-h"><span>⚽ Artilheiro</span><span className="bz-spec-pts">+{POINTS.artilheiro} pts</span></div>
-          <input className="bz-input" disabled={isLocked} placeholder="Nome do jogador" value={pred.special.artilheiro || ""} onChange={(e) => set("artilheiro", e.target.value)} />
-        </div>
-        <div className="bz-spec">
-          <div className="bz-spec-h"><span>⭐ Melhor Jogador</span><span className="bz-spec-pts">+{POINTS.melhorJogador} pts</span></div>
-          <input className="bz-input" disabled={isLocked} placeholder="Nome do jogador" value={pred.special.melhorJogador || ""} onChange={(e) => set("melhorJogador", e.target.value)} />
-        </div>
       </div>
     </div>
   );
@@ -458,7 +350,7 @@ function RankingTab({ everyone, results, meId, onRefresh }) {
     const data = e.data || {};
     let pts = 0; try { pts = scoreUser(data, results).pts; } catch { pts = 0; }
     const gf = GROUP_MATCHES.filter((m) => { const p = (data.groups || {})[m.id]; return p && p.a !== "" && p.b !== "" && p.a != null && p.b != null; }).length;
-    const sf = ["campeao", "vice", "terceiro", "artilheiro", "melhorJogador"].filter((k) => (data.special || {})[k] && String(data.special[k]).trim() !== "").length;
+    const sf = ["campeao", "vice"].filter((k) => (data.special || {})[k] && String(data.special[k]).trim() !== "").length;
     return { id: e.id, name: e.name, isAdmin: e.isAdmin, pts, gf, sf };
   }).sort((a, b) => b.pts - a.pts || b.gf - a.gf || a.name.localeCompare(b.name)), [everyone, results]);
 
@@ -473,7 +365,7 @@ function RankingTab({ everyone, results, meId, onRefresh }) {
           <div className={"bz-rank-row" + (r.id === meId ? " me" : "") + (i < 3 ? " top" + (i + 1) : "")} key={r.id}>
             <span className="bz-pos">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
             <span className="bz-rn">{r.name}{r.isAdmin && <em> · ADM</em>}</span>
-            <span>{r.gf}/72</span><span>{r.sf}/5</span><span className="bz-pts">{r.pts}</span>
+            <span>{r.gf}/72</span><span>{r.sf}/2</span><span className="bz-pts">{r.pts}</span>
           </div>
         ))}
       </div>
@@ -482,21 +374,49 @@ function RankingTab({ everyone, results, meId, onRefresh }) {
 }
 
 /* ============================== ABA 5 — PERFIL + ADMIN ============================== */
-function PerfilTab({ me, pred, results, groupFilled, specialFilled, adminMode, setAdminMode, config, saveConfig, saveResults, everyone }) {
+function NameEditor({ me, onRename }) {
+  const [name, setName] = useState(me.name);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => { setName(me.name); }, [me.name]);
+  const dirty = name.trim() !== me.name && name.trim().length >= 2;
+  async function save() {
+    setErr(""); setMsg(""); setBusy(true);
+    try { await onRename(name.trim()); setMsg("Nome atualizado ✓"); setTimeout(() => setMsg(""), 1800); }
+    catch (e) { setErr(e.message || "Erro ao salvar."); } finally { setBusy(false); }
+  }
+  return (
+    <div className="bz-card">
+      <h3>Seu nome no ranking</h3>
+      <p className="bz-hint">É assim que você aparece para todos no ranking. Você pode mudar quando quiser.</p>
+      <div className="bz-nameedit">
+        <input className="bz-input" value={name} maxLength={40} placeholder="Seu nome"
+          onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && dirty && save()} />
+        <button className="bz-btn primary" disabled={!dirty || busy} onClick={save}>{busy ? "Salvando…" : "Salvar nome"}</button>
+      </div>
+      {msg && <p className="bz-okmsg">{msg}</p>}
+      {err && <p className="bz-warn small">{err}</p>}
+    </div>
+  );
+}
+
+function PerfilTab({ me, pred, results, groupFilled, specialFilled, adminMode, setAdminMode, onRename, config, saveConfig, saveResults, everyone }) {
   const { pts, det } = scoreUser(pred, results);
   return (
     <div>
       <SectionTitle k="Aba 5" t="Perfil" s={`${me.name} · ${me.email}`} />
       <div className="bz-profile">
+        <NameEditor me={me} onRename={onRename} />
         <div className="bz-card">
           <h3>Resumo das suas apostas</h3>
           <div className="bz-stats">
             <div><b>{groupFilled}/72</b><span>placares de grupo</span></div>
             <div><b>{specialFilled}/5</b><span>palpites especiais</span></div>
-            <div><b>{pred.bracket.winners?.M104 ? <Flag code={pred.bracket.winners.M104} /> : "—"}</b><span>seu campeão</span></div>
+            <div><b>{pred.special?.campeao ? <Flag code={pred.special.campeao} /> : "—"}</b><span>seu campeão</span></div>
             <div className="bz-stat-pts"><b>{pts}</b><span>pontos até agora</span></div>
           </div>
-          <div className="bz-detail">Grupos {det.grupos} · Mata-mata {det.mata} · Especiais {det.especiais}</div>
+          <div className="bz-detail">Grupos {det.grupos} · Especiais {det.especiais}</div>
           <p className="bz-hint">Os jogos de grupo travam 30 min antes de cada partida — você pode ir ajustando até lá.</p>
         </div>
 
@@ -535,7 +455,7 @@ function AdminPanel({ config, saveConfig, results, saveResults, everyone, onExit
     <div className="bz-card admin">
       <div className="bz-admin-h"><h3>⚙ Administrador</h3>{flash && <span className="bz-savedtag">{flash}</span>}<button className="bz-link" onClick={onExit}>fechar</button></div>
       <div className="bz-subtabs">
-        {[["config", "Prazos & trava"], ["matactrl", "Liberar mata-mata"], ["grupos", "Result. grupos"], ["mata", "Result. mata-mata"], ["especiais", "Especiais"], ["users", "Participantes"]].map(([k, l]) => (
+        {[["config", "Prazos & trava"], ["grupos", "Result. grupos"], ["especiais", "Especiais"], ["users", "Participantes"]].map(([k, l]) => (
           <button key={k} className={"bz-subtab" + (sec === k ? " on" : "")} onClick={() => setSec(k)}>{l}</button>
         ))}
       </div>
@@ -547,27 +467,6 @@ function AdminPanel({ config, saveConfig, results, saveResults, everyone, onExit
           </label>
           <p className="bz-hint">Os jogos da fase de grupos NÃO usam esse prazo — cada um trava sozinho 30 min antes de começar.</p>
           <label className="bz-check"><input type="checkbox" checked={config.globalLock} onChange={(e) => saveConfig({ ...config, globalLock: e.target.checked })} /> Trava geral de emergência (congela tudo agora)</label>
-        </div>
-      )}
-
-      {sec === "matactrl" && (
-        <div className="bz-admin-body scroll">
-          <label className="bz-check"><input type="checkbox" checked={config.bracketOpen} onChange={(e) => saveConfig({ ...config, bracketOpen: e.target.checked })} /> <b>Liberar o mata-mata</b> para os participantes palpitarem</label>
-          <label className="bz-check"><input type="checkbox" checked={config.bracketLocked} onChange={(e) => saveConfig({ ...config, bracketLocked: e.target.checked })} /> Travar os palpites do mata-mata (somente leitura)</label>
-          <p className="bz-hint">Fluxo: quando a fase de grupos acabar, preencha abaixo os 32 classificados, marque <b>Liberar o mata-mata</b>, e o pessoal palpita quem avança até a final. Antes do 1º jogo do mata-mata, marque <b>Travar</b>.</p>
-          <div className="bz-md">Classificados (32-avos)</div>
-          {r32.map((id) => (
-            <div className="bz-koadmin" key={id}>
-              <span className="bz-ko-id">{id}</span>
-              {[0, 1].map((i) => (
-                <select key={i} className="bz-input small" value={teams[`${id}-${i}`] || ""} onChange={(e) => setTeams({ ...teams, [`${id}-${i}`]: e.target.value })}>
-                  <option value="">{BRACKET[id].slots[i].label}</option>
-                  {slotOptions(BRACKET[id].slots[i]).map((c) => <option key={c} value={c}>{T[c].n}</option>)}
-                </select>
-              ))}
-            </div>
-          ))}
-          <button className="bz-btn primary" onClick={saveTeams}>Salvar classificados</button>
         </div>
       )}
 
@@ -593,26 +492,9 @@ function AdminPanel({ config, saveConfig, results, saveResults, everyone, onExit
         </div>
       )}
 
-      {sec === "mata" && (
-        <div className="bz-admin-body scroll">
-          <p className="bz-hint">Quem avançou em cada confronto (código FIFA, ex.: BRA) e, se quiser, o placar para o bônus.</p>
-          {KO_IDS.map((id) => (
-            <div className="bz-koadmin" key={id}>
-              <span className="bz-ko-id">{id}</span><span className="bz-ko-lbl">{ROUND_LABEL[BRACKET[id].round]}</span>
-              <input className="bz-input small" placeholder="Avançou (ex.: BRA)" value={r.koWinners[id] || ""} onChange={(e) => setKoWinner(id, e.target.value.toUpperCase())} list="codes" />
-              <input className="bz-score" placeholder="-" value={r.koScores[id]?.a ?? ""} onChange={(e) => setKoScore(id, "a", e.target.value)} />
-              <span className="bz-x">×</span>
-              <input className="bz-score" placeholder="-" value={r.koScores[id]?.b ?? ""} onChange={(e) => setKoScore(id, "b", e.target.value)} />
-            </div>
-          ))}
-          <datalist id="codes">{ALL_CODES.map((c) => <option key={c} value={c}>{T[c].n}</option>)}</datalist>
-          <button className="bz-btn primary" onClick={saveRes}>Salvar resultados</button>
-        </div>
-      )}
-
       {sec === "especiais" && (
         <div className="bz-admin-body">
-          {[["campeao", "Campeão"], ["vice", "Vice"], ["terceiro", "3º Lugar"]].map(([k, l]) => (
+          {[["campeao", "Campeão"], ["vice", "Vice"]].map(([k, l]) => (
             <label className="bz-field" key={k}>{l}
               <select className="bz-input" value={r.special?.[k] || ""} onChange={(e) => setSpec(k, e.target.value)}>
                 <option value="">—</option>
@@ -620,8 +502,6 @@ function AdminPanel({ config, saveConfig, results, saveResults, everyone, onExit
               </select>
             </label>
           ))}
-          <label className="bz-field">Artilheiro <input className="bz-input" value={r.special?.artilheiro || ""} onChange={(e) => setSpec("artilheiro", e.target.value)} /></label>
-          <label className="bz-field">Melhor Jogador <input className="bz-input" value={r.special?.melhorJogador || ""} onChange={(e) => setSpec("melhorJogador", e.target.value)} /></label>
           <button className="bz-btn primary" onClick={saveRes}>Salvar especiais</button>
         </div>
       )}

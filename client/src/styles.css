@@ -223,3 +223,7 @@ body{background:var(--cream)}
 .bz-btn.tiny{padding:4px 10px;font-size:.76rem}
 .bz-input.small{padding:7px 9px;font-size:.82rem}
 .bz-subtab.chave{}
+
+/* editor de nome no perfil */
+.bz-nameedit{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bz-nameedit .bz-input{flex:1;min-width:160px}
