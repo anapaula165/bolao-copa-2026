@@ -3,7 +3,7 @@ import { api } from "./api.js";
 import {
   T, ALL_CODES, GROUPS, GROUP_LETTERS, GROUP_MATCHES, GROUP_MATCHES_SORTED,
   BRACKET, KO_IDS, ROUND_LABEL, POINTS, MAX_POINTS, computeStandings,
-  resolveBracketTeams, scoreUser, emptyData, matchKickoff, matchLockMs, MATCH_LOCK_MIN,
+  resolveBracketTeams, scoreUser, scoreGroupMatch, emptyData, matchKickoff, matchLockMs, MATCH_LOCK_MIN,
 } from "./data.js";
 
 const DEADLINE_FALLBACK = "2026-06-11T12:00";
@@ -49,7 +49,7 @@ export default function App() {
     setBooted(true);
   })(); }, [loadAll, resetToken]);
 
-  useEffect(() => { if (tab === "ranking" && me) refreshRanking(); /* eslint-disable-next-line */ }, [tab]);
+  useEffect(() => { if (me && (tab === "ranking" || tab === "palpites")) refreshRanking(); /* eslint-disable-next-line */ }, [tab]);
 
   const specialsClosed = useMemo(() => {
     if (config.globalLock) return true;
@@ -123,7 +123,7 @@ export default function App() {
 
       <main className="bz-main">
         {tab === "grupos" && <GruposTab />}
-        {tab === "palpites" && <PalpitesTab pred={pred} savePred={persist} now={now} config={config} />}
+        {tab === "palpites" && <PalpitesTab pred={pred} savePred={persist} now={now} config={config} results={results} />}
         {tab === "especiais" && <EspeciaisTab pred={pred} savePred={persist} isLocked={specialsClosed} />}
         {tab === "ranking" && <RankingTab everyone={allPreds} results={results} meId={me.id} onRefresh={refreshRanking} />}
         {tab === "perfil" && (
@@ -266,16 +266,29 @@ function GruposTab() {
 }
 
 /* ============================== ABA 2 — PALPITES ============================== */
-function PalpitesTab({ pred, savePred, now, config }) {
+function PalpitesTab({ pred, savePred, now, config, results }) {
   return (
     <div>
       <SectionTitle k="Aba 2" t="Palpites" s="Jogos da fase de grupos em ordem cronológica. Cada um trava 30 min antes de começar." />
-      <GroupPredictions pred={pred} savePred={savePred} now={now} globalLock={config.globalLock} />
+      <GroupPredictions pred={pred} savePred={savePred} now={now} globalLock={config.globalLock} results={results} />
     </div>
   );
 }
 
-function GroupPredictions({ pred, savePred, now, globalLock }) {
+function MatchResult({ m, pred, results }) {
+  const off = (results && results.groups) ? results.groups[m.id] : null;
+  const sc = scoreGroupMatch(pred, off);
+  if (!sc) return null; // sem resultado oficial ainda
+  const label = !sc.palpitou ? "você não palpitou" : sc.exato ? "placar exato!" : sc.pts > 0 ? "resultado certo" : "não pontuou";
+  return (
+    <div className={"bz-result" + (sc.pts > 0 ? " ok" : "")}>
+      <span className="bz-result-score">✅ Resultado: <b>{T[m.home].n} {off.a}</b> × <b>{off.b} {T[m.away].n}</b></span>
+      <span className="bz-result-pts">{label} · <b>+{sc.pts} {sc.pts === 1 ? "ponto" : "pontos"}</b></span>
+    </div>
+  );
+}
+
+function GroupPredictions({ pred, savePred, now, globalLock, results }) {
   function setScore(id, side, val) {
     const v = val === "" ? "" : Math.max(0, Math.min(20, parseInt(val || "0", 10) || 0));
     const groups = { ...pred.groups, [id]: { ...(pred.groups[id] || { a: "", b: "" }), [side]: v } };
@@ -311,6 +324,7 @@ function GroupPredictions({ pred, savePred, now, globalLock }) {
                   </div>
                   <div className="bz-team away"><Flag code={m.away} /><span className="bz-tn">{T[m.away].n}</span></div>
                 </div>
+                <MatchResult m={m} pred={pred.groups[m.id]} results={results} />
               </div>
             );
           })}

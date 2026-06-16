@@ -219,6 +219,17 @@ function resolveBracketTeams(pred, officialSlots) {
   return teams;
 }
 
+// pontos de UM jogo de grupo (para mostrar embaixo do palpite na tela).
+// retorna null se ainda não há resultado oficial cadastrado.
+function scoreGroupMatch(p, r) {
+  if (!r || r.a === "" || r.b === "" || r.a == null || r.b == null) return null;
+  if (!p || p.a === "" || p.b === "" || p.a == null || p.b == null) return { pts: 0, palpitou: false, exato: false };
+  const pa = +p.a, pb = +p.b, ra = +r.a, rb = +r.b;
+  if (pa === ra && pb === rb) return { pts: POINTS.placarExato, palpitou: true, exato: true };
+  if (Math.sign(pa - pb) === Math.sign(ra - rb)) return { pts: POINTS.resultadoCerto, palpitou: true, exato: false };
+  return { pts: 0, palpitou: true, exato: false };
+}
+
 function scoreUser(pred, results) {
   let pts = 0, det = { grupos:0, especiais:0 };
   pred = pred || {}; results = results || {};
@@ -260,4 +271,4 @@ const GROUP_MATCHES_SORTED = [...GROUP_MATCHES].sort((a, b) => matchKickoff(a) -
 
 export const emptyData = () => ({ groups:{}, bracket:{ slots:{}, winners:{}, scores:{} }, special:{} });
 
-export { T, ALL_CODES, GROUPS, GROUP_LETTERS, GM, GROUP_MATCHES, BRACKET, KO_IDS, ROUND_LABEL, POINTS, MAX_POINTS, computeStandings, resolveBracketTeams, scoreUser, matchKickoff, matchLockMs, MATCH_LOCK_MIN, GROUP_MATCHES_SORTED };
+export { T, ALL_CODES, GROUPS, GROUP_LETTERS, GM, GROUP_MATCHES, BRACKET, KO_IDS, ROUND_LABEL, POINTS, MAX_POINTS, computeStandings, resolveBracketTeams, scoreUser, scoreGroupMatch, matchKickoff, matchLockMs, MATCH_LOCK_MIN, GROUP_MATCHES_SORTED };
