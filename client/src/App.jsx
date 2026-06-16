@@ -279,7 +279,7 @@ function MatchResult({ m, pred, results }) {
   const off = (results && results.groups) ? results.groups[m.id] : null;
   const sc = scoreGroupMatch(pred, off);
   if (!sc) return null; // sem resultado oficial ainda
-  const label = !sc.palpitou ? "você não palpitou" : sc.exato ? "placar exato!" : sc.pts > 0 ? "resultado certo" : "não pontuou";
+  const label = !sc.palpitou ? " Você não palpitou" : sc.exato ? " Placar exato!" : sc.pts > 0 ? " Resultado certo" : " Não pontuou";
   return (
     <div className={"bz-result" + (sc.pts > 0 ? " ok" : "")}>
       <span className="bz-result-score">✅ Resultado: <b>{T[m.home].n} {off.a}</b> × <b>{off.b} {T[m.away].n}</b></span>
