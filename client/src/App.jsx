@@ -283,7 +283,7 @@ function MatchResult({ m, pred, results }) {
   return (
     <div className={"bz-result" + (sc.pts > 0 ? " ok" : "")}>
       <span className="bz-result-score">✅ Resultado: <b>{T[m.home].n} {off.a}</b> × <b>{off.b} {T[m.away].n}</b></span>
-      <span className="bz-result-pts">{label} · <b>+{sc.pts} {sc.pts === 1 ? "ponto" : "pontos"}</b></span>
+      <span className="bz-result-pts"> · {label} · <b>+{sc.pts} {sc.pts === 1 ? "ponto" : "pontos"}</b></span>
     </div>
   );
 }
