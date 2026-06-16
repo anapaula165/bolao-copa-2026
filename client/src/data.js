@@ -113,7 +113,7 @@ const GM = [
   ["GI5","I","NOR","FRA",3,"26/jun","sex","16h","Boston"],
   ["GI6","I","SEN","IRQ",3,"26/jun","sex","16h","Toronto"],
   // GRUPO J
-  ["GJ1","J","ARG","ALG",1,"16/jun","ter","14h","Kansas City"],
+  ["GJ1","J","ARG","ALG",1,"16/jun","ter","22h","Kansas City"],
   ["GJ2","J","AUT","JOR",1,"17/jun","qua","1h","San Francisco"],
   ["GJ3","J","ARG","AUT",2,"22/jun","seg","14h","Dallas"],
   ["GJ4","J","JOR","ALG",2,"23/jun","ter","0h","San Francisco"],
